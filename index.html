@@ -1,0 +1,350 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<title>Product Demo</title>
+	<link rel="stylesheet" type="text/css" href="view.css" media="all">
+	<script type="text/javascript" src="jquery-3.4.1.min.js"></script>
+	<link href="toastr.min.css" rel="stylesheet" type="text/css" />
+	<script src="toastr.min.js"></script>
+	<script type="text/javascript">
+	$(window).on('load', function(){
+
+		toastr.options = {
+			closeButton: true,
+			debug: false,
+			newestOnTop: true,
+			progressBar: false,
+			positionClass: 'toast-top-center',
+			preventDuplicates: true,
+			onclick: null,
+			showDuration: 200,
+			hideDuration: 200,
+			timeOut: 3000,
+			extendedTimeOut: 0,
+			showEasing: 'swing',
+			hideEasing: 'linear',
+			showMethod: 'fadeIn',
+			hideMethod: 'fadeOut',
+			tapToDismiss: true,
+		};
+
+		$("#asset_number").hide();
+
+		//Hide asset list and show number of assets if selection is automatic
+		$("#asset_selection").on('change', function () {
+			var status = $("#asset_selection").val();
+			if(status == "automatic")//automatic
+			{
+				$("#asset_list").hide();
+				$("#asset_number").show();
+			}
+			else//manual
+			{
+				$("#asset_list").show();
+				$("#asset_number").hide();
+			}
+    	});
+
+		//Show a toaster if the user tries to select more than 10 assets.
+		$('.asset-checkbox').on('change', function() {
+			if($('.asset-checkbox:checked').length > 10) {
+				this.checked = false;
+			
+				var msg = 'You can select a maximum of 10 assets.';
+				var	title =  'Asset Selection';
+
+				toastr.warning(msg,title);
+			}
+		});
+
+	function isEmail(email)
+	{
+		var regex = /^([a-zA-Z0-9_.+-])+\@(([a-zA-Z0-9-])+\.)+([a-zA-Z0-9]{2,4})+$/;
+		return regex.test(email);
+	}
+
+	/**
+	* Checks that an element has a non-empty `name` and `value` property.
+	* @param  {Element} element  the element to check
+	* @return {Bool}             true if the element is an input, false if not
+	*/
+	const isValidElement = element => {
+	return element.name && element.value;
+	};
+
+	/**
+	* Checks if an element’s value can be saved (e.g. not an unselected checkbox).
+	* @param  {Element} element  the element to check
+	* @return {Boolean}          true if the value should be added, false if not
+	*/
+	const isValidValue = element => {
+	return (!['checkbox', 'radio'].includes(element.type) || element.checked);
+	};
+
+	/**
+	* Checks if an input is a checkbox, because checkboxes allow multiple values.
+	* @param  {Element} element  the element to check
+	* @return {Boolean}          true if the element is a checkbox, false if not
+	*/
+	const isCheckbox = element => element.type === 'checkbox';
+
+	/**
+	* Checks if an input is a `select` with the `multiple` attribute.
+	* @param  {Element} element  the element to check
+	* @return {Boolean}          true if the element is a multiselect, false if not
+	*/
+	const isMultiSelect = element => element.options && element.multiple;
+
+	/**
+	* Retrieves the selected options from a multi-select as an array.
+	* @param  {HTMLOptionsCollection} options  the options for the select
+	* @return {Array}                          an array of selected option values
+	*/
+	const getSelectValues = options => [].reduce.call(options, (values, option) => {
+	return option.selected ? values.concat(option.value) : values;
+	}, []);
+
+	/**
+	* A more verbose implementation of `formToJSON()` to explain how it works.
+	*
+	* NOTE: This function is unused, and is only here for the purpose of explaining how
+	* reducing form elements works.
+	*
+	* @param  {HTMLFormControlsCollection} elements  the form elements
+	* @return {Object}                               form data as an object literal
+	*/
+	const formToJSON_deconstructed = elements => {
+	
+	// This is the function that is called on each element of the array.
+	const reducerFunction = (data, element) => {
+		
+		// Add the current field to the object.
+		data[element.name] = element.value;
+		
+		// For the demo only: show each step in the reducer’s progress.
+		console.log(JSON.stringify(data));
+
+		return data;
+	};
+	
+	// This is used as the initial value of `data` in `reducerFunction()`.
+	const reducerInitialValue = {};
+		// To help visualize what happens, log the inital value, which we know is `{}`.
+		console.log('Initial `data` value:', JSON.stringify(reducerInitialValue));
+		// Now we reduce by `call`-ing `Array.prototype.reduce()` on `elements`.
+		const formData = [].reduce.call(elements, reducerFunction, reducerInitialValue);
+		// The result is then returned for use elsewhere.
+		return formData;
+	};
+
+	const formToJSON = elements => [].reduce.call(elements, (data, element) => {
+	// Make sure the element has the required properties and should be added.
+		if (isValidElement(element) && isValidValue(element)) {
+			if (isCheckbox(element)) {
+			data[element.name] = (data[element.name] || []).concat(element.value);
+			} else if (isMultiSelect(element)) {
+			data[element.name] = getSelectValues(element);
+			} else {
+			data[element.name] = element.value;
+			}
+		}
+	return data;
+	}, {});
+
+	const handleFormSubmit = event => {
+		event.preventDefault();
+
+		var d = new Date();
+
+		// Set the value of the "date" field
+		document.getElementById("date").value = d.toDateString();
+
+		// Set the value of the "time" field
+		var hours = d.getHours();
+		var mins = d.getMinutes();
+		var seconds = d.getSeconds();
+		document.getElementById("time").value = hours + ":" + mins + ":" + seconds;
+
+		var mail = $("input[name=mail_input]").val();
+		if(!isEmail(mail))
+		{
+			var msg = 'The E-Mail address you entered is not valid.';
+			var	title =  'Form Submission';
+			toastr.error(msg,title);
+			return;
+		}
+		if($("#asset_selection").val() == "manual")
+		{
+			if($('.asset-checkbox:checked').length == 0)
+			{
+				var msg = 'You have not selected any assets';
+				var	title =  'Form Submission';
+				toastr.error(msg,title);
+				return;
+			}
+			else if($('.asset-checkbox:checked').length < 3)
+			{
+				var msg = 'Select at least 3 assets';
+				var	title =  'Form Submission';
+				toastr.error(msg,title);
+				return;
+			}
+		}
+
+		const formData = formToJSON(form.elements);
+		formDataJSON = JSON.stringify(formData, null, "  ");
+		//const dataContainer = document.getElementsByClassName('results__display')[0];
+		//dataContainer.textContent = JSON.stringify(formData, null, "  ");
+		$.ajax({
+			type: "POST",
+			url: "http://127.0.0.1:5000/mailReport",
+			data: formDataJSON,
+			contentType: "application/json",
+			success: function(response){
+				$("#form_content").html(response);
+    		//window.location.href = response;
+			}
+		});
+	};
+
+	const form = document.getElementsByClassName('demo_form')[0];
+	form.addEventListener('submit', handleFormSubmit);
+
+	});
+	</script>
+</head>
+<body id="main_body" >
+	<div id="form_container">
+		<form id="demo_form" class="demo_form" method="post" action="">
+			<div class="form_description">
+				<h2>Product Demo</h2>
+				<p>Seper İş Analitiği Yazılım Ltd. Şti.</p>
+			</div>
+			<div id="form_content">
+				<ul>
+					<li id="user_email" >
+						<label class="description" for="mail_input">E-Mail </label>
+						<div>
+							<input type="text" class="mail_input" name="mail_input">
+						</div> 
+					</li>
+					<li id="data_resolution" >
+						<label class="description" for="resolution">Data Resolution</label>
+						<div>
+							<select class="element select medium" id="resolution" name="resolution"> 
+								<option value="hourly" selected>Hourly</option>
+								<option value="daily" >Daily</option>
+							</select>
+						</div> 
+					</li>
+					<li id="selection_method" >
+						<label class="description" for="asset_selection">Selection Method</label>
+						<div>
+							<select class="element select medium" id="asset_selection" name="asset_selection"> 
+								<option value="manual" selected>Manual</option>
+								<option value="automatic" >Automatic</option>
+							</select>
+						</div> 
+					</li>
+					<li id="asset_number">
+						<label class="description" for="asset_numbers">Number of Assets</label>
+						<div>
+							<select class="element select medium" id="asset_numbers" name="asset_numbers">
+								<option value="3">3</option>
+								<option value="4">4</option>
+								<option value="5" selected>5</option>
+								<option value="6">6</option>
+								<option value="7">7</option>
+								<option value="8">8</option>
+								<option value="9">9</option>
+								<option value="10">10</option>
+							</select>
+						</div>
+					</li>	
+					<li id="asset_list" >
+						<label class="description" for="asset-table">Assets </label>
+						<table class="asset-table">
+							<tr>
+								<th>
+										<input id="Assets-AKBNK" name="Assets" class="asset-checkbox" type="checkbox" value="AKBNK" />
+										<label class="choice" for="AKBNK">AKBNK</label>
+										<input id="Assets-ARCLK" name="Assets" class="asset-checkbox" type="checkbox" value="ARCLK" />
+										<label class="choice" for="ARCLK">ARCLK</label>
+										<input id="Assets-ASELS" name="Assets" class="asset-checkbox" type="checkbox" value="ASELS" />
+										<label class="choice" for="ASELS">ASELS</label>
+										<input id="Assets-BIMAS" name="Assets" class="asset-checkbox" type="checkbox" value="BIMAS" />
+										<label class="choice" for="BIMAS">BIMAS</label>
+										<input id="Assets-DOHOL" name="Assets" class="asset-checkbox" type="checkbox" value="DOHOL" />
+										<label class="choice" for="DOHOL">DOHOL</label>
+										<input id="Assets-EKGYO" name="Assets" class="asset-checkbox" type="checkbox" value="EKGYO" />
+										<label class="choice" for="EKGYO">EKGYO</label>
+										<input id="Assets-EREGL" name="Assets" class="asset-checkbox" type="checkbox" value="EREGL" />
+										<label class="choice" for="EREGL">EREGL</label>
+										<input id="Assets-FROTO" name="Assets" class="asset-checkbox" type="checkbox" value="FROTO" />
+										<label class="choice" for="FROTO">FROTO</label>
+										<input id="Assets-GARAN" name="Assets" class="asset-checkbox" type="checkbox" value="GARAN" />
+										<label class="choice" for="GARAN">GARAN</label>
+										<input id="Assets-HALKB" name="Assets" class="asset-checkbox" type="checkbox" value="HALKB" />
+										<label class="choice" for="HALKB">HALKB</label>							</th>
+								<th>
+										<input id="Assets-ISCTR" name="Assets" class="asset-checkbox" type="checkbox" value="ISCTR" />
+										<label class="choice" for="ISCTR">ISCTR</label>
+										<input id="Assets-KCHOL" name="Assets" class="asset-checkbox" type="checkbox" value="KCHOL" />
+										<label class="choice" for="KCHOL">KCHOL</label>
+										<input id="Assets-KOZAA" name="Assets" class="asset-checkbox" type="checkbox" value="KOZAA" />
+										<label class="choice" for="KOZAA">KOZAA</label>
+										<input id="Assets-KOZAL" name="Assets" class="asset-checkbox" type="checkbox" value="KOZAL" />
+										<label class="choice" for="KOZAL">KOZAL</label>
+										<input id="Assets-KRDMD" name="Assets" class="asset-checkbox" type="checkbox" value="KRDMD" />
+										<label class="choice" for="KRDMD">KRDMD</label>
+										<input id="Assets-PETKM" name="Assets" class="asset-checkbox" type="checkbox" value="PETKM" />
+										<label class="choice" for="PETKM">PETKM</label>
+										<input id="Assets-PGSUS" name="Assets" class="asset-checkbox" type="checkbox" value="PGSUS" />
+										<label class="choice" for="PGSUS">PGSUS</label>
+										<input id="Assets-SAHOL" name="Assets" class="asset-checkbox" type="checkbox" value="SAHOL" />
+										<label class="choice" for="SAHOL">SAHOL</label>
+										<input id="Assets-SISE" name="Assets" class="asset-checkbox" type="checkbox" value="SISE" />
+										<label class="choice" for="SISE">SISE</label>
+										<input id="Assets-SODA" name="Assets" class="asset-checkbox" type="checkbox" value="SODA" />
+										<label class="choice" for="SODA">SODA</label>									</th>
+								<th>
+										<input id="Assets-TAVHL" name="Assets" class="asset-checkbox" type="checkbox" value="TAVHL" />
+										<label class="choice" for="TAVHL">TAVHL</label>
+										<input id="Assets-TCELL" name="Assets" class="asset-checkbox" type="checkbox" value="TCELL" />
+										<label class="choice" for="TCELL">TCELL</label>
+										<input id="Assets-THYAO" name="Assets" class="asset-checkbox" type="checkbox" value="THYAO" />
+										<label class="choice" for="THYAO">THYAO</label>
+										<input id="Assets-TKFEN" name="Assets" class="asset-checkbox" type="checkbox" value="TKFEN" />
+										<label class="choice" for="TKFEN">TKFEN</label>
+										<input id="Assets-TOASO" name="Assets" class="asset-checkbox" type="checkbox" value="TOASO" />
+										<label class="choice" for="TOASO">TOASO</label>
+										<input id="Assets-TSKB" name="Assets" class="asset-checkbox" type="checkbox" value="TSKB" />
+										<label class="choice" for="TSKB">TSKB</label>
+										<input id="Assets-TTKOM" name="Assets" class="asset-checkbox" type="checkbox" value="TTKOM" />
+										<label class="choice" for="TTKOM">TTKOM</label>
+										<input id="Assets-TUPRS" name="Assets" class="asset-checkbox" type="checkbox" value="TUPRS" />
+										<label class="choice" for="TUPRS">TUPRS</label>
+										<input id="Assets-VAKBN" name="Assets" class="asset-checkbox" type="checkbox" value="VAKBN" />
+										<label class="choice" for="VAKBN">VAKBN</label>
+										<input id="Assets-YKBNK" name="Assets" class="asset-checkbox" type="checkbox" value="YKBNK" />
+										<label class="choice" for="YKBNK">YKBNK</label>		
+								</th>
+							</tr>
+						</table>
+					</li>
+					<li class="buttons">
+						<input id="saveForm" class="button_text" type="submit" name="submit" />
+					</li>
+				</ul>
+			</div>
+			<input type="hidden" id="date" name="date" value="CurrentTime">
+			<input type="hidden" id="time" name="time" value="CurrentDate">
+		</form>	
+	</div>
+	<!--<div class="results">
+			<h2 class="results__heading" style="color:white">Form Data</h2>
+			<pre class="results__display-wrapper"><code class="results__display" style="color: white"></code></pre>
+		  </div>-->
+	</body>
+</html>
